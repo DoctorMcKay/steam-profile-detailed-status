@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Steam Profile Detailed Status
 // @namespace    doctormckay.com
-// @description  Shows detailed status on Steam profiles, and also registration datesteamc
+// @description  Shows detailed status on Steam profiles, and also registration date
 // @include      *://steamcommunity.com/id/*
 // @include      *://steamcommunity.com/profiles/*
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js
