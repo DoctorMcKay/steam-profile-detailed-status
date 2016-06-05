@@ -5,7 +5,7 @@
 // @include      *://steamcommunity.com/id/*
 // @include      *://steamcommunity.com/profiles/*
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js
-// @version      1.0.0
+// @version      1.0.1
 // @grant        GM_xmlhttpRequest
 // ==/UserScript==
 
@@ -60,7 +60,7 @@
 				}
 				
 				var res = JSON.parse(response.responseText);
-				if (!res.response || !res.response.players || !res.response.players[0] || typeof res.response.players[0].personastate === 'undefined') {
+				if (!res.response || !res.response.players || !res.response.players[0] || typeof res.response.players[0].personastate === 'undefined' || res.response.players[0].communityvisibilitystate != 3) {
 					return;
 				}
 				
