@@ -4,9 +4,11 @@
 // @description  Shows detailed status on Steam profiles, and also registration date
 // @include      *://steamcommunity.com/id/*
 // @include      *://steamcommunity.com/profiles/*
+// @require      https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js
-// @version      1.0.1
+// @version      1.0.3
 // @grant        GM_xmlhttpRequest
+// @grant        GM.xmlHttpRequest
 // ==/UserScript==
 
 (function() {
@@ -51,7 +53,7 @@
 			return;
 		}
 
-		GM_xmlhttpRequest({
+		GM.xmlHttpRequest({
 			"method": "GET",
 			"url": "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=" + key + "&steamids=" + unsafeWindow.g_rgProfileData.steamid,
 			"onload": function(response) {
