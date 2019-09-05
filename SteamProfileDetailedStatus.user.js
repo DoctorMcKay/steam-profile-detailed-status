@@ -2,14 +2,11 @@
 // @name         Steam Profile Detailed Status
 // @namespace    doctormckay.com
 // @description  Shows detailed status on Steam profiles, and also registration date
-// @include      *://steamcommunity.com/id/*
-// @include      *://steamcommunity.com/id/*/
-// @include      *://steamcommunity.com/profiles/*
-// @include      *://steamcommunity.com/profiles/*/
+// @include      *://steamcommunity.com/*
 // @require      https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js
 // @require      https://raw.githubusercontent.com/DoctorMcKay/steam-profile-detailed-status/master/modules.min.js
-// @version      1.1.0
+// @version      1.2.0
 // @grant        GM_xmlhttpRequest
 // @grant        GM.xmlHttpRequest
 // @grant        GM_setClipboard
@@ -17,8 +14,35 @@
 // @run-at       document-start
 // ==/UserScript==
 
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
 document.addEventListener('DOMContentLoaded', function() {
-	if(typeof unsafeWindow.g_rgProfileData === 'undefined' || !unsafeWindow.g_rgProfileData.steamid) {
+    // First prep miniprofile stuff. Do we have an API key?
+    let apiKey = localStorage.__doctormckay_apikey;
+    if (!apiKey.match || !apiKey.match(/[0-9A-F]{32}/)) {
+        apiKey = null;
+    }
+
+    if (typeof unsafeWindow.CDelayedAJAXData !== 'undefined' && apiKey) {
+        const oldShow = unsafeWindow.CDelayedAJAXData.prototype.Show;
+        unsafeWindow.CDelayedAJAXData.prototype.Show = exportFunction(function(element) {
+            oldShow.apply(this, arguments);
+            let match;
+            if (!this._memberSinceDateAppended && (match = this.m_strURL.match(/miniprofile\/(\d+)/))) {
+                this._memberSinceDateAppended = true;
+                let sid = new Modules.SteamID('[U:1:' + match[1] + ']');
+                getUserDetailsFromAPI(apiKey, sid.getSteamID64(), function(err, player) {
+                    if (!err && player.timecreated) {
+                        let date = new Date(player.timecreated * 1000);
+                        let createdStr = 'Member since ' + MONTH_NAMES[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
+                        $(element).find('.player_content').append('<small>' + createdStr + '</small>');
+                    }
+                });
+            }
+        });
+    }
+
+	if (typeof unsafeWindow.g_rgProfileData === 'undefined' || !unsafeWindow.g_rgProfileData.steamid) {
 		return; // guess this isn't a profile
 	}
 
@@ -64,34 +88,44 @@ function doStatusCheck() {
 			return;
 		}
 
-		GM.xmlHttpRequest({
-			"method": "GET",
-			"url": "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=" + key + "&steamids=" + unsafeWindow.g_rgProfileData.steamid,
-			"onload": function(response) {
-				if (!response.responseText) {
-					return;
-				}
+        getUserDetailsFromAPI(key, unsafeWindow.g_rgProfileData.steamid, function(err, player) {
+            if (err) {
+                return;
+            }
 
-				var res = JSON.parse(response.responseText);
-				if (!res.response || !res.response.players || !res.response.players[0] || typeof res.response.players[0].personastate === 'undefined' || res.response.players[0].communityvisibilitystate != 3) {
-					return;
-				}
+            let state = ["Offline", "Online", "Busy", "Away", "Snooze", "Looking to Trade", "Looking to Play"][player.personastate];
+            if ($online.text() == "Currently Online") {
+                $online.text("Currently " + state);
+            } else if ($online.text() == "Currently In-Game") {
+                $online.text(state + (state.indexOf("Looking to") === 0 ? "" : " and In-Game"));
+            }
 
-				var state = ["Offline", "Online", "Busy", "Away", "Snooze", "Looking to Trade", "Looking to Play"][res.response.players[0].personastate];
-				if ($online.text() == "Currently Online") {
-					$online.text("Currently " + state);
-				} else if ($online.text() == "Currently In-Game") {
-					$online.text(state + (state.indexOf("Looking to") === 0 ? "" : " and In-Game"));
-				}
-
-				if (res.response.players[0].timecreated) {
-					var date = new Date(res.response.players[0].timecreated * 1000);
-					var month = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][date.getMonth()];
-					$('.responsive_count_link_area').prepend("<p>Member since " + month + " " + date.getDate() + ", " + date.getFullYear() + "</p>");
-				}
-			}
-		});
+            if (player.timecreated) {
+                let date = new Date(player.timecreated * 1000);
+                let month = MONTH_NAMES[date.getMonth()];
+                $('.responsive_count_link_area').prepend("<p>Member since " + month + " " + date.getDate() + ", " + date.getFullYear() + "</p>");
+            }
+        });
 	}
+}
+
+function getUserDetailsFromAPI(key, steamID, callback) {
+    GM.xmlHttpRequest({
+        "method": "GET",
+        "url": "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=" + key + "&steamids=" + steamID,
+        "onload": function(response) {
+            if (!response.responseText) {
+                return callback(new Error('No response text'));
+            }
+
+            let res = JSON.parse(response.responseText);
+            if (!res.response || !res.response.players || !res.response.players[0] || typeof res.response.players[0].personastate === 'undefined' || res.response.players[0].communityvisibilitystate != 3) {
+                return callback(new Error('No player data or profile is not public'));
+            }
+
+            callback(null, res.response.players[0]);
+        }
+    });
 }
 
 function doSteamIDButton() {
