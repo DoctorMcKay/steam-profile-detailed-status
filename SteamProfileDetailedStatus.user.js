@@ -6,7 +6,7 @@
 // @require      https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js
 // @require      https://raw.githubusercontent.com/DoctorMcKay/steam-profile-detailed-status/master/modules.min.js
-// @version      1.2.0
+// @version      1.2.1
 // @grant        GM_xmlhttpRequest
 // @grant        GM.xmlHttpRequest
 // @grant        GM_setClipboard
@@ -19,7 +19,7 @@ const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "Ju
 document.addEventListener('DOMContentLoaded', function() {
     // First prep miniprofile stuff. Do we have an API key?
     let apiKey = localStorage.__doctormckay_apikey;
-    if (!apiKey.match || !apiKey.match(/[0-9A-F]{32}/)) {
+    if (!apiKey || !apiKey.match || !apiKey.match(/[0-9A-F]{32}/)) {
         apiKey = null;
     }
 
